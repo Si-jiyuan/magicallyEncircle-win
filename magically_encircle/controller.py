@@ -165,7 +165,10 @@ class MagicController(QObject):
             self._hook_alerted = True
             self.show_hud("启动失败", message)
         else:
-            self.show_hud("magicallyEncircle 已启动", f"按住{self.draw_hint}拖动开始绘制")
+            self.show_hud(
+                "magicallyEncircle 已启动",
+                f"按住{self.draw_hint}拖动开始绘制\n托盘图标可打开设置（看不到请点任务栏 ^ 展开）",
+            )
         if self.settings.auto_check_updates:
             self._update_checker.check(False)
 

@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
-from .config import APP_NAME, DATA_DIR, LOG_DIR, Settings
+from .config import APP_NAME, DATA_DIR, LOG_DIR, SETTINGS_FILE, Settings
 from .constants import APP_MUTEX
 from .platform_support import win32
 
@@ -108,6 +108,7 @@ def main() -> int:
     from .ui.tray import TrayController
 
     settings = Settings()
+    first_run = not SETTINGS_FILE.exists()
     try:
         from .platform_support import autostart
 
@@ -118,6 +119,8 @@ def main() -> int:
     window = SettingsWindow(controller)
     tray = TrayController(controller, window.show_and_raise)
     app.aboutToQuit.connect(controller.shutdown)
+    if first_run or "--autostart" not in sys.argv:
+        tray.show_startup_hint()
     if "--settings" in sys.argv or not QSystemTrayIcon.isSystemTrayAvailable():
         window.show_and_raise()
 

@@ -24,15 +24,23 @@ from ..gesture import geometry
 from ..model.gestures import Strokes
 
 
-def _icon_path() -> Path:
-    candidates = [
-        APP_DIR / "assets" / "icon.png",
-        Path(__file__).resolve().parents[1] / "assets" / "icon.png",
+def _asset_roots() -> list[Path]:
+    return [
+        APP_DIR / "assets",
+        Path(__file__).resolve().parents[1] / "assets",
     ]
+
+
+def asset_path(*parts: str) -> Path:
+    candidates = [root.joinpath(*parts) for root in _asset_roots()]
     for candidate in candidates:
         if candidate.exists():
             return candidate
     return candidates[-1]
+
+
+def _icon_path() -> Path:
+    return asset_path("icon.png")
 
 
 def app_icon() -> QIcon:
@@ -51,6 +59,15 @@ def app_icon() -> QIcon:
     painter.drawLine(QPointF(32, 20), QPointF(44, 42))
     painter.end()
     return QIcon(pixmap)
+
+
+def tray_icon() -> QIcon:
+    """A tray-optimised version of the app icon (high-contrast frame)."""
+    for name in ("tray-icon.ico", "tray-icon.png"):
+        path = asset_path(name)
+        if path.exists():
+            return QIcon(str(path))
+    return app_icon()
 
 
 def is_dark_mode() -> bool:

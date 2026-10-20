@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QSettings, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QCursor, QGuiApplication, QIcon
+import html
+
+from PySide6.QtCore import QPoint, QSettings, QSize, Qt, Signal
+from PySide6.QtGui import QColor, QCursor, QGuiApplication, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -44,7 +46,15 @@ from ..model.gestures import Strokes
 from ..platform_support.overlay import STYLES, STYLE_TITLES
 from ..platform_support import win32
 from .canvas import PatternCanvas
-from .theme import app_icon, preview_pixmap
+from .theme import app_icon, asset_path, is_dark_mode, preview_pixmap
+
+AUTHOR_URL = (
+    "https://www.xiaohongshu.com/user/profile/60046a230000000001004f31"
+    "?xsec_token=YBLDwnjN2eGZx9O3CXGjM4vs9CoMKtL-HD7O6KLqU35tM="
+    "&xsec_source=app_share&xhsshare=CopyLink"
+    "&shareRedId=ODYyNDlGNjw2NzUyOTgwNjY0OTc4Szk6"
+    "&apptime=1791476230&share_id=3aa2798892c24177b928812d98c4eb6d"
+)
 
 CARD_STYLE = """
 QFrame#card {
@@ -117,6 +127,76 @@ class RecordDialog(QDialog):
 
     def strokes(self) -> Strokes:
         return self.canvas.current_strokes()
+
+
+class CoffeePopup(QWidget):
+    """Small popup with the WeChat / Alipay support QR codes."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent, Qt.Popup | Qt.FramelessWindowHint)
+        self.setObjectName("coffeePopup")
+        dark = is_dark_mode()
+        background = "#2a2a31" if dark else "#fbfbfd"
+        border = "#4a4a56" if dark else "#d7d7df"
+        text = "#ececf0" if dark else "#202024"
+        self.setStyleSheet(
+            f"QWidget#coffeePopup {{ background: {background}; border: 1px solid {border}; border-radius: 12px; }}"
+            f"QLabel {{ color: {text}; }}"
+        )
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(12)
+        title = QLabel("Buy Me A Coffee ☕️")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("font-size: 16px; font-weight: 600;")
+        layout.addWidget(title)
+
+        row = QHBoxLayout()
+        row.setSpacing(16)
+        row.addWidget(self._qr("wechat.jpg", "微信"))
+        row.addWidget(self._qr("alipay.jpg", "支付宝"))
+        layout.addLayout(row)
+        self.setFixedWidth(480)
+        self.adjustSize()
+
+    def _qr(self, filename: str, title: str) -> QWidget:
+        wrapper = QWidget()
+        layout = QVBoxLayout(wrapper)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        image = QLabel()
+        image.setAlignment(Qt.AlignCenter)
+        image.setFixedSize(200, 260)
+        path = asset_path("buyMeCoffee", filename)
+        pixmap = QPixmap(str(path)) if path.exists() else QPixmap()
+        if pixmap.isNull():
+            image.setText("图片缺失")
+            image.setStyleSheet("color: rgba(128,128,138,255);")
+        else:
+            image.setPixmap(
+                pixmap.scaled(200, 260, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            )
+        layout.addWidget(image)
+        label = QLabel(title)
+        label.setAlignment(Qt.AlignCenter)
+        label.setStyleSheet("font-size: 12px; color: rgba(128,128,138,255);")
+        layout.addWidget(label)
+        return wrapper
+
+    def show_at(self, anchor: QWidget) -> None:
+        self.adjustSize()
+        point = anchor.mapToGlobal(QPoint(0, anchor.height() + 8))
+        screen = QGuiApplication.screenAt(point) or QGuiApplication.primaryScreen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            if point.x() + self.width() > available.right():
+                point.setX(available.right() - self.width())
+            if point.y() + self.height() > available.bottom():
+                point = anchor.mapToGlobal(QPoint(0, -self.height() - 8))
+        self.move(point)
+        self.show()
+        self.raise_()
+        self.activateWindow()
 
 
 class GeneralSection(QWidget):
@@ -218,6 +298,25 @@ class GeneralSection(QWidget):
         layout.addLayout(buttons)
 
         layout.addStretch(1)
+        author = QLabel(
+            f'Made With By 💌 <a href="{html.escape(AUTHOR_URL, quote=True)}">Si-Jiyuan</a>'
+        )
+        author.setTextFormat(Qt.RichText)
+        author.setOpenExternalLinks(True)
+        author.setStyleSheet("font-size: 12px;")
+        layout.addWidget(author)
+
+        self.coffee_button = QPushButton("Buy Me A Coffee Pleeeeeease 🥺")
+        self.coffee_button.setFlat(True)
+        self.coffee_button.setCursor(Qt.PointingHandCursor)
+        self.coffee_button.setStyleSheet(
+            "QPushButton { border: none; color: #4a8cff; text-align: left; padding: 0; font-size: 12px; }"
+            "QPushButton:hover { text-decoration: underline; }"
+        )
+        self.coffee_button.clicked.connect(self._show_coffee)
+        layout.addWidget(self.coffee_button, alignment=Qt.AlignLeft)
+        self._coffee_popup: CoffeePopup | None = None
+
         about = _caption(
             f"magicallyEncircle {__version__} · Windows\n"
             "用 Alt + 左键或鼠标中键画出图案来触发快捷键。\n"
@@ -252,6 +351,14 @@ class GeneralSection(QWidget):
         value = self.playback_combo.currentData()
         if value is not None:
             self.controller.set_playback_speed(float(value))
+
+    def _show_coffee(self) -> None:
+        if self._coffee_popup is None:
+            self._coffee_popup = CoffeePopup(self)
+        if self._coffee_popup.isVisible():
+            self._coffee_popup.hide()
+            return
+        self._coffee_popup.show_at(self.coffee_button)
 
     def refresh(self) -> None:
         settings = self.controller.settings

@@ -46,7 +46,13 @@ try:
 except Exception:
     pass
 
-datas = [(os.path.join(ROOT, "assets", "icon.png"), "assets")]
+datas = [
+    (os.path.join(ROOT, "assets", "icon.png"), "assets"),
+    (os.path.join(ROOT, "assets", "tray-icon.ico"), "assets"),
+    (os.path.join(ROOT, "assets", "tray-icon.png"), "assets"),
+    (os.path.join(ROOT, "assets", "buyMeCoffee", "wechat.jpg"), "assets/buyMeCoffee"),
+    (os.path.join(ROOT, "assets", "buyMeCoffee", "alipay.jpg"), "assets/buyMeCoffee"),
+]
 try:
     datas += collect_data_files("winrt")
 except Exception:

@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QScrollArea
 
 from magically_encircle.config import Settings
 from magically_encircle.controller import MagicController
@@ -48,7 +48,30 @@ def main() -> int:
 
     for index in range(5):
         QTimer.singleShot(300 + index * 250, lambda i=index: capture(i))
-    QTimer.singleShot(2200, lambda: app.exit(0))
+
+    def capture_bottom() -> None:
+        window.sidebar.setCurrentRow(0)
+        general = window.sections[0][1]
+        scroll = general.findChild(QScrollArea)
+        if scroll is not None:
+            scroll.verticalScrollBar().setValue(scroll.verticalScrollBar().maximum())
+        app.processEvents()
+        window.grab().save(str(OUT / "settings_general_bottom.png"))
+        print("saved general bottom", flush=True)
+
+    def capture_coffee() -> None:
+        general = window.sections[0][1]
+        general._show_coffee()
+        app.processEvents()
+        popup = getattr(general, "_coffee_popup", None)
+        if popup is not None:
+            popup.grab().save(str(OUT / "coffee.png"))
+            popup.hide()
+        print("saved coffee popup", flush=True)
+
+    QTimer.singleShot(1700, capture_bottom)
+    QTimer.singleShot(1900, capture_coffee)
+    QTimer.singleShot(2400, lambda: app.exit(0))
     return app.exec()
 
 

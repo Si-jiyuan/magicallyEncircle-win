@@ -7,6 +7,11 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
+    $running = Get-Process -Name "MagicallyEncircle" -ErrorAction SilentlyContinue
+    if ($running) {
+        throw "MagicallyEncircle is running. Quit it from the tray before building; dist\MagicallyEncircle\data\logs\app.log is locked."
+    }
+
     Write-Host "Using Python: $Python"
     & $Python -c "import PySide6, PIL, PyInstaller" 2>$null
     if ($LASTEXITCODE -ne 0) {
@@ -25,6 +30,7 @@ try {
     Copy-Item -Path "portable.flag" -Destination "dist\MagicallyEncircle\portable.flag" -Force
     Copy-Item -Path "README.md" -Destination "dist\MagicallyEncircle\README.md" -Force
     Copy-Item -Path "LICENSE" -Destination "dist\MagicallyEncircle\LICENSE" -Force
+    Copy-Item -Path "assets" -Destination "dist\MagicallyEncircle\assets" -Recurse -Force
     if (Test-Path "dist\MagicallyEncircle-portable.zip") {
         Remove-Item "dist\MagicallyEncircle-portable.zip" -Force
     }

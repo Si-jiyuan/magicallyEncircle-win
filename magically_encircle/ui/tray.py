@@ -12,7 +12,7 @@ from ..config import LOG_DIR
 from ..controller import MagicController
 from ..gesture.builtin import BUILT_INS
 from ..platform_support.overlay import STYLE_TITLES
-from .theme import app_icon, preview_pixmap
+from .theme import preview_pixmap, tray_icon
 
 
 class TrayController(QObject):
@@ -20,7 +20,7 @@ class TrayController(QObject):
         super().__init__()
         self.controller = controller
         self.open_settings = open_settings
-        self.tray = QSystemTrayIcon(app_icon())
+        self.tray = QSystemTrayIcon(tray_icon())
         self.tray.setToolTip("magicallyEncircle")
         self.menu = QMenu()
         self.menu.aboutToShow.connect(self.rebuild)
@@ -33,7 +33,16 @@ class TrayController(QObject):
     def _update_tooltip(self) -> None:
         state = "已启用" if self.controller.settings.enabled else "已停用"
         self.tray.setToolTip(f"magicallyEncircle · {state}")
-        self.tray.setIcon(app_icon())
+        self.tray.setIcon(tray_icon())
+
+    def show_startup_hint(self) -> None:
+        if QSystemTrayIcon.supportsMessages():
+            self.tray.showMessage(
+                "magicallyEncircle 已启动",
+                "托盘图标可打开设置。若看不到，请点击任务栏的 ^ 展开。",
+                QSystemTrayIcon.Information,
+                4000,
+            )
 
     def _activated(self, reason) -> None:
         if reason in (QSystemTrayIcon.Trigger, QSystemTrayIcon.DoubleClick):
