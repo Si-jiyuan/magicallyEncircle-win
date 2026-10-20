@@ -1,0 +1,15 @@
+# Runtime dependencies for the Windows app.
+# PySide6 is LGPL; the app is distributed without a commercial Qt licence.
+PySide6-Essentials>=6.6,<7
+Pillow>=10
+
+# Optional but strongly recommended: native Windows OCR for the
+# "circle text -> copy" feature.  If these are missing the rest of the app
+# still works and the OCR action shows a friendly message.
+winrt-runtime>=2.0
+winrt-Windows.Foundation>=2.0
+winrt-Windows.Foundation.Collections>=2.0
+winrt-Windows.Globalization>=2.0
+winrt-Windows.Graphics.Imaging>=2.0
+winrt-Windows.Media.Ocr>=2.0
+winrt-Windows.Storage.Streams>=2.0
